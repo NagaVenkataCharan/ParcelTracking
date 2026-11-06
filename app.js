@@ -1,0 +1,12 @@
+const api=async(url,options={})=>{const r=await fetch(url,{headers:{'Content-Type':'application/json'},...options});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||'Request failed');return d};
+const date=document.getElementById('bookingDate');if(date)date.min=new Date().toISOString().slice(0,10);
+const form=document.getElementById('bookingForm');if(form)form.addEventListener('submit',async e=>{e.preventDefault();const msg=document.getElementById('bookingMessage');msg.textContent='Saving booking…';try{
+const c=await api('/api/customers',{method:'POST',body:JSON.stringify({name:customerName.value.trim(),email:customerEmail.value.trim(),phone:customerPhone.value.trim(),address:senderAddress.value.trim()})});
+const p=await api('/api/parcels',{method:'POST',body:JSON.stringify({customer_id:c.customerId,sender_address:senderAddress.value.trim(),receiver_name:receiverName.value.trim(),receiver_phone:receiverPhone.value.trim(),receiver_address:receiverAddress.value.trim(),weight:weight.value,booking_date:bookingDate.value})});
+msg.innerHTML=`Booking successful. Tracking number: <strong>${p.trackingNumber}</strong>. Save it to track your parcel.`;form.reset();date.min=new Date().toISOString().slice(0,10);
+}catch(err){msg.textContent=err.message}});
+const track=document.getElementById('trackForm');if(track)track.addEventListener('submit',async e=>{e.preventDefault();const out=document.getElementById('trackResult');out.textContent='Searching…';try{
+const d=await api('/api/track/'+encodeURIComponent(document.getElementById('trackingNumber').value.trim()));const p=d.parcel;
+out.innerHTML=`<div class="result-card"><div class="meta"><span>TRACKING: <b>${esc(d.trackingNumber)}</b></span><span class="status">${esc(p.status)}</span></div><h3>${esc(p.receiver_name)} · ${esc(p.receiver_address)}</h3><div class="meta"><span>Sender: ${esc(p.sender_address)}</span><span>Weight: ${esc(p.weight)} kg</span><span>Booked: ${esc(String(p.booking_date).slice(0,10))}</span></div><div class="timeline">${d.updates.map(x=>`<div class="timeline-item"><b>${esc(x.tracking_status)} · ${esc(x.current_location)}</b><small>${new Date(x.updated_at).toLocaleString()} ${x.remarks?'— '+esc(x.remarks):''}</small></div>`).join('')}</div></div>`;
+}catch(err){out.textContent=err.message}});
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
